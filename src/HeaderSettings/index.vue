@@ -1,7 +1,7 @@
 <template>
   <div class="btn-group" name="HeaderSettings">
     <button class="btn btn-default dropdown-toggle" ref="dropdownBtn" type="button">
-      <i class="fa" :class="[usingBak && 'text-info', processingCls || 'fa-cog']"></i>
+      <i class="fa" :class="[processingCls || 'fa-cog']"></i>
       <span class="caret"></span>
     </button>
     <div class="dropdown-menu clearfix" :style="drpMenuStyle">
@@ -16,39 +16,14 @@
           <button class="btn btn-default" type="button" @click="apply()">
             {{ $i18nForDatatable('Apply') }}
           </button>
-          <template v-if="supportBackup">
-            <button data-toggle="dropdown" class="btn btn-default dropdown-toggle" type="button" style="box-shadow: none">
-              <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu">
-              <li @click="apply(true)">
-                <a href="#" @click.prevent>
-                  <i class="fa fa-floppy-o"></i>&nbsp;
-                  {{ $i18nForDatatable('Apply and backup settings to local') }}
-                </a>
-              </li>
-              <li v-if="usingBak" @click="rmBackup()">
-                <a href="#" @click.prevent>
-                  <i class="fa fa-trash-o text-danger"></i>&nbsp;
-                  {{ $i18nForDatatable('Clear local settings backup and restore') }}
-                </a>
-              </li>
-            </ul>
-          </template>
         </div>
       </div>
-      <small v-if="usingBak" class="pull-left text-muted" style="margin-top: -8px">
-        ( {{ $i18nForDatatable('Using local settings') }} )
-      </small>
     </div>
   </div>
 </template>
 <script>
 import ColumnGroup from './ColumnGroup.vue'
 import groupBy from 'lodash/groupBy'
-import keyGen from '../_utils/keyGen'
-import replaceWith from '../_utils/replaceWith'
-import { parseStr, stringify, saveToLS, rmFromLS, getFromLS } from '../_utils/localstorage'
 
 export default {
   name: 'HeaderSettings',
@@ -58,22 +33,14 @@ export default {
     supportBackup: { type: Boolean, required: true }
   },
   data () {
-    const origSettings = stringify(this.columns)
+    const origSettings = JSON.stringify(this.columns)
     return {
       origSettings,
-      usingBak: false, // is using backup
       processingCls: '',
-      storageKey: this.supportBackup && keyGen(origSettings)
     }
   },
   created () {
-    if (!this.supportBackup) return
-
-    const backup = getFromLS(this.storageKey)
-    if (!backup) return // no backup found
-
-    replaceWith(this.columns, backup)
-    this.usingBak = true
+    
   },
   mounted () {
     // control dropdown manually (refers to http://jsfiddle.net/rj3k550m/3)
@@ -103,19 +70,6 @@ export default {
     apply (alsoBackup) {
       this.toggle()
       this.$refs.colGroups.forEach(colGroup => { colGroup.apply() })
-      alsoBackup && this.$nextTick(this.backup)
-    },
-    backup () {
-      saveToLS(this.storageKey, this.columns)
-      this.showProcessing()
-      this.usingBak = true
-    },
-    rmBackup () {
-      rmFromLS(this.storageKey)
-      this.showProcessing()
-      this.usingBak = false
-      
-      replaceWith(this.columns, parseStr(this.origSettings)) // restore
     },
     toggle () {
       $(this.$el).toggleClass('open')
